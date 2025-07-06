@@ -49,19 +49,19 @@ test.describe('Todo UI Components', () => {
     await expect(page.getByPlaceholder('Enter your email')).toBeVisible();
     
     // Check if the form card is properly responsive
-    const card = page.locator('.card, [class*="card"]').first();
+    const card = page.locator('[data-slot="card-content"]').first();
     await expect(card).toBeVisible();
   });
 
   test('should navigate between auth pages correctly', async ({ page }) => {
     await page.goto('/login');
     
-    // Go to register
-    await page.getByRole('link', { name: 'Sign up' }).click();
+    // Go to register using the card link
+    await page.getByRole('link', { name: 'create a new account' }).click();
     await page.waitForURL('/register');
-    await expect(page.getByRole('heading', { name: 'Sign Up' })).toBeVisible();
+    await expect(page.getByText('Sign Up')).toBeVisible();
     
-    // Go back to login
+    // Go back to login using the bottom link
     await page.getByRole('link', { name: 'Login' }).click();
     await page.waitForURL('/login');
     await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
@@ -70,12 +70,37 @@ test.describe('Todo UI Components', () => {
   test('should handle loading states properly', async ({ page }) => {
     await page.goto('/login');
     
-    // Fill form with invalid credentials to test loading state
-    await page.getByPlaceholder('Enter your email').fill('nonexistent@example.com');
-    await page.getByPlaceholder('Enter your password').fill('wrongpassword');
+    // Fill form with valid format but potentially non-existent credentials
+    await page.getByPlaceholder('Enter your email').fill('test@example.com');
+    await page.getByPlaceholder('Enter your password').fill('password123');
     
-    // The button should be clickable even if it leads to an error
+    // The button should be clickable
     const loginButton = page.getByRole('button', { name: 'Login' });
     await expect(loginButton).toBeEnabled();
+    
+    // Submit and check that the button is still present (may show loading state)
+    await loginButton.click();
+    await expect(page.getByRole('button')).toBeVisible();
+  });
+
+  test('should show email validation error for invalid format', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Fill invalid email format
+    await page.getByPlaceholder('Enter your email').fill('invalid-email');
+    await page.getByRole('button', { name: 'Login' }).click();
+    
+    await expect(page.getByText('Invalid email address')).toBeVisible();
+  });
+
+  test('should show password length validation', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Fill valid email but short password
+    await page.getByPlaceholder('Enter your email').fill('test@example.com');
+    await page.getByPlaceholder('Enter your password').fill('12345'); // 5 chars, minimum is 6
+    await page.getByRole('button', { name: 'Login' }).click();
+    
+    await expect(page.getByText('Password must be at least 6 characters')).toBeVisible();
   });
 });
