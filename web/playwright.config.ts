@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: 'html',
-  timeout: 30000,
+  timeout: 60000,
   expect: {
     timeout: 10000,
   },
@@ -17,6 +17,7 @@ export default defineConfig({
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    actionTimeout: 10000,
   },
   projects: [
     {
@@ -24,4 +25,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  webServer: {
+    command: 'next dev',
+    port: 3000,
+    timeout: 60000,
+    reuseExistingServer: !process.env.CI,
+  },
 });

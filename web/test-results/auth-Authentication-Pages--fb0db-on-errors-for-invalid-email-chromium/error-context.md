@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- alert
+- button "Open Next.js Dev Tools":
+  - img
+- button "Open issues overlay": 1 Issue
+- navigation:
+  - button "previous" [disabled]:
+    - img "previous"
+  - text: 1/1
+  - button "next" [disabled]:
+    - img "next"
+- img
+- img
+- text: Next.js 15.3.5 Webpack
+- img
+- dialog "Build Error":
+  - text: Build Error
+  - button "Copy Stack Trace":
+    - img
+  - link "Go to related documentation":
+    - /url: https://nextjs.org/docs/messages/module-not-found
+    - img
+  - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools":
+    - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+    - img
+  - paragraph: "Module not found: Can't resolve '@radix-ui/react-slot'"
+  - img
+  - text: ./src/components/ui/button.tsx (2:1)
+  - button "Open in editor":
+    - img
+  - text: "Module not found: Can't resolve '@radix-ui/react-slot' 1 | import * as React from \"react\" > 2 | import { Slot } from \"@radix-ui/react-slot\" | ^ 3 | import { cva, type VariantProps } from \"class-variance-authority\" 4 | 5 | import { cn } from \"@/lib/utils\""
+  - link "https://nextjs.org/docs/messages/module-not-found":
+    - /url: https://nextjs.org/docs/messages/module-not-found
+  - text: "Import trace for requested module:"
+  - link "./src/app/login/page.tsx":
+    - text: ./src/app/login/page.tsx
+    - img
+- contentinfo:
+  - paragraph: This error occurred during the build process and can only be dismissed by fixing the error.
+```
