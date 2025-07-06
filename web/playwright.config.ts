@@ -4,10 +4,10 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: 1,
-  reporter: 'html',
-  timeout: 60000,
+  reporter: 'line',
+  timeout: 60000, // 60 seconds max per test
   expect: {
     timeout: 10000,
   },
@@ -25,10 +25,5 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'next dev',
-    port: 3000,
-    timeout: 60000,
-    reuseExistingServer: !process.env.CI,
-  },
+  // Removed webServer - we'll test without it first
 });
