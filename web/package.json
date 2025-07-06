@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "playwright test",
+    "test": "playwright test --reporter=line",
     "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed --reporter=line",
+    "test:debug": "playwright test --debug"
   },
   "dependencies": {
     "react": "^18.3.1",
