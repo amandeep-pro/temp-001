@@ -1,71 +1,58 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, authAPI, LoginData, RegisterData } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { authAPI, User } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (data: LoginData) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (data: { email: string; password: string }) => Promise<void>;
+  register: (data: { email: string; password: string; name?: string }) => Promise<void>;
   logout: () => void;
-  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
           const response = await authAPI.getProfile();
           setUser(response.user);
-        } catch (error) {
-          console.error('Failed to get profile:', error);
-          localStorage.removeItem('token');
         }
+      } catch (error) {
+        localStorage.removeItem('token');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();
   }, []);
 
-  const login = async (data: LoginData) => {
+  const login = async (data: { email: string; password: string }) => {
     try {
       const response = await authAPI.login(data);
       localStorage.setItem('token', response.token);
       setUser(response.user);
     } catch (error) {
-      console.error('Login failed:', error);
       throw error;
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: { email: string; password: string; name?: string }) => {
     try {
       const response = await authAPI.register(data);
       localStorage.setItem('token', response.token);
       setUser(response.user);
     } catch (error) {
-      console.error('Registration failed:', error);
       throw error;
     }
   };
@@ -73,16 +60,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    router.push('/login');
   };
 
-  const value = {
-    user,
-    loading,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-  };
+  return (
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

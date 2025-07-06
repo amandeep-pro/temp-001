@@ -1,293 +1,236 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { todoAPI, Todo } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Check, 
-  X, 
-  LogOut, 
-  User,
-  AlertCircle,
-  Loader2 
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { todoAPI, Todo } from '@/lib/api';
 
-export default function DashboardPage() {
+export default function Dashboard() {
+  const { user, logout } = useAuth();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [newTodo, setNewTodo] = useState({ title: '', description: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { user, logout } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    fetchTodos();
-  }, [user, router]);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchTodos = async () => {
     try {
       setLoading(true);
       const response = await todoAPI.getTodos();
       setTodos(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch todos');
+    } catch (err: unknown) {
+      setError('Failed to fetch todos');
+      console.error('Error fetching todos:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateTodo = async () => {
+  const handleCreateTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newTodo.title.trim()) return;
-    
-    setIsSubmitting(true);
+
     try {
-      const todo = await todoAPI.createTodo(newTodo);
-      setTodos([todo, ...todos]);
+      await todoAPI.createTodo(newTodo);
       setNewTodo({ title: '', description: '' });
-      setIsCreateDialogOpen(false);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create todo');
-    } finally {
-      setIsSubmitting(false);
+      setIsDialogOpen(false);
+      fetchTodos();
+    } catch (err: unknown) {
+      setError('Failed to create todo');
+      console.error('Error creating todo:', err);
     }
   };
 
-  const handleUpdateTodo = async (id: number, updates: Partial<Todo>) => {
+  const handleUpdateTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTodo) return;
+
     try {
-      const updatedTodo = await todoAPI.updateTodo(id, updates);
-      setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
+      await todoAPI.updateTodo(editingTodo.id, {
+        title: editingTodo.title,
+        description: editingTodo.description,
+      });
       setEditingTodo(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update todo');
+      setIsDialogOpen(false);
+      fetchTodos();
+    } catch (err: unknown) {
+      setError('Failed to update todo');
+      console.error('Error updating todo:', err);
     }
   };
 
-  const handleToggleComplete = async (id: number, completed: boolean) => {
+  const handleToggleComplete = async (id: number) => {
     try {
-      const updatedTodo = await todoAPI.updateTodo(id, { completed });
-      setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update todo');
+      await todoAPI.completeTodo(id);
+      fetchTodos();
+    } catch (err: unknown) {
+      setError('Failed to update todo');
+      console.error('Error toggling todo:', err);
     }
   };
 
   const handleDeleteTodo = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this todo?')) return;
-    
     try {
       await todoAPI.deleteTodo(id);
-      setTodos(todos.filter(todo => todo.id !== id));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to delete todo');
+      fetchTodos();
+    } catch (err: unknown) {
+      setError('Failed to delete todo');
+      console.error('Error deleting todo:', err);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading todos...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2">
-          <User className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">
-            Welcome, {user?.name || user?.email}
-          </h1>
-        </div>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Add Todo Button */}
-      <div className="mb-6">
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Todo
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Todo</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newTodo.title}
-                  onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })}
-                  placeholder="Enter todo title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={newTodo.description}
-                  onChange={(e) => setNewTodo({ ...newTodo, description: e.target.value })}
-                  placeholder="Enter todo description (optional)"
-                />
-              </div>
-              <Button 
-                onClick={handleCreateTodo} 
-                disabled={!newTodo.title.trim() || isSubmitting}
-                className="w-full"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Todo'
-                )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
+              <Button onClick={logout} variant="outline">
+                Logout
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       </div>
 
-      {/* Todos List */}
-      <div className="space-y-4">
-        {todos.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center justify-center py-8">
-              <p className="text-gray-500">No todos yet. Create your first todo!</p>
-            </CardContent>
-          </Card>
-        ) : (
-          todos.map((todo) => (
-            <Card key={todo.id} className={`${todo.completed ? 'opacity-60' : ''}`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleComplete(todo.id, !todo.completed)}
-                    >
-                      {todo.completed ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <div className="h-4 w-4 border-2 border-gray-300 rounded" />
-                      )}
-                    </Button>
-                    <div className="flex-1">
-                      <h3 className={`font-medium ${todo.completed ? 'line-through text-gray-500' : ''}`}>
-                        {todo.title}
-                      </h3>
-                      {todo.description && (
-                        <p className={`text-sm ${todo.completed ? 'line-through text-gray-400' : 'text-gray-600'}`}>
-                          {todo.description}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        Created: {new Date(todo.createdAt).toLocaleDateString()}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertDescription className="text-red-800">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="mb-6">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingTodo(null)}>Add New Todo</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingTodo ? 'Edit Todo' : 'Add New Todo'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={editingTodo ? handleUpdateTodo : handleCreateTodo} className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={editingTodo ? editingTodo.title : newTodo.title}
+                    onChange={(e) => {
+                      if (editingTodo) {
+                        setEditingTodo({ ...editingTodo, title: e.target.value });
+                      } else {
+                        setNewTodo({ ...newTodo, title: e.target.value });
+                      }
+                    }}
+                    placeholder="Enter todo title"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={editingTodo ? editingTodo.description || '' : newTodo.description}
+                    onChange={(e) => {
+                      if (editingTodo) {
+                        setEditingTodo({ ...editingTodo, description: e.target.value });
+                      } else {
+                        setNewTodo({ ...newTodo, description: e.target.value });
+                      }
+                    }}
+                    placeholder="Enter todo description (optional)"
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  {editingTodo ? 'Update Todo' : 'Create Todo'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {todos.map((todo) => (
+            <Card key={todo.id} className={`${todo.completed ? 'opacity-75' : ''}`}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className={`font-semibold ${todo.completed ? 'line-through text-gray-500' : ''}`}>
+                      {todo.title}
+                    </h3>
+                    {todo.description && (
+                      <p className={`text-sm mt-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-600'}`}>
+                        {todo.description}
                       </p>
-                    </div>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(todo.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <Button
+                    onClick={() => handleToggleComplete(todo.id)}
+                    variant={todo.completed ? 'outline' : 'default'}
+                    size="sm"
+                  >
+                    {todo.completed ? 'Undo' : 'Complete'}
+                  </Button>
+                  <div className="flex space-x-2">
                     <Button
-                      variant="ghost"
+                      onClick={() => {
+                        setEditingTodo(todo);
+                        setIsDialogOpen(true);
+                      }}
+                      variant="outline"
                       size="sm"
-                      onClick={() => setEditingTodo(todo)}
                     >
-                      <Edit2 className="h-4 w-4" />
+                      Edit
                     </Button>
                     <Button
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleDeleteTodo(todo.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-800"
                     >
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                      Delete
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))
+          ))}
+        </div>
+
+        {todos.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No todos yet. Create your first todo!</p>
+          </div>
         )}
       </div>
-
-      {/* Edit Todo Dialog */}
-      {editingTodo && (
-        <Dialog open={!!editingTodo} onOpenChange={() => setEditingTodo(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Todo</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">Title</Label>
-                <Input
-                  id="edit-title"
-                  value={editingTodo.title}
-                  onChange={(e) => setEditingTodo({ ...editingTodo, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Input
-                  id="edit-description"
-                  value={editingTodo.description || ''}
-                  onChange={(e) => setEditingTodo({ ...editingTodo, description: e.target.value })}
-                />
-              </div>
-              <Button 
-                onClick={() => handleUpdateTodo(editingTodo.id, {
-                  title: editingTodo.title,
-                  description: editingTodo.description
-                })}
-                className="w-full"
-              >
-                Update Todo
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

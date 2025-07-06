@@ -25,5 +25,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Removed webServer - we'll test without it first
+  webServer: {
+    command: 'npm run dev',
+    port: 3000,
+    timeout: 60000,
+    reuseExistingServer: !process.env.CI,
+  },
 });

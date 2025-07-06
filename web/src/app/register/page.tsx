@@ -57,8 +57,9 @@ export default function RegisterPage() {
         name: data.name,
       });
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
