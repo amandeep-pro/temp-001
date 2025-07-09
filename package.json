@@ -1,0 +1,36 @@
+{
+  "name": "asteroid-dodge",
+  "version": "1.0.0",
+  "description": "A browser-based 3D mini-game using Three.js where players dodge falling asteroids",
+  "main": "src/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "game",
+    "3d",
+    "threejs",
+    "asteroids",
+    "webgl"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.158.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "jsdom": "^23.0.0"
+  }
+}
